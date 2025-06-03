@@ -474,7 +474,9 @@ func (l *DHCPLease) Routes() []*types.Route {
 	opt121Routes := ack.ClasslessStaticRoute()
 	if len(opt121Routes) > 0 {
 		for _, r := range opt121Routes {
-			routes = append(routes, &types.Route{Dst: *r.Dest, GW: r.Router})
+			// routes = append(routes, &types.Route{Dst: *r.Dest, GW: r.Router}) - moved
+			// to 0 for GCE 
+			routes = append(routes, &types.Route{Dst: *r.Dest, GW: net.ParseIP("0.0.0.0")})
 		}
 		return routes
 	}
