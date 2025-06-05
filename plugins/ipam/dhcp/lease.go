@@ -497,15 +497,16 @@ if len(opt121Routes) > 0 {
             }
             // Create route with nil gw - will mane a link scope route
             if isGwRoute {
+                log.Printf("DEBUG: Adding GW route! dst = %s with nil GW", r.Dest.IP)
                 route := &types.Route{Dst: *r.Dest, GW: nil}
                 linkRoutes = append(linkRoutes, route)
             } else {
                 // For all other routes, create them normally with their gateway.
+                log.Printf("DEBUG: Adding 'standard' route : dst = %s, GW = %s", r.Dest.IP, r.Router)
                 route := &types.Route{Dst: *r.Dest, GW: r.Router}
                 otherRoutes = append(otherRoutes, route)
             }
         }
-
         // Return the sorted routes, ensuring link-scoped routes are first.
         return append(linkRoutes, otherRoutes...)
     }
