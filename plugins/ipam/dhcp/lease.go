@@ -472,12 +472,44 @@ func (l *DHCPLease) Routes() []*types.Route {
 	// RFC 3442 states that if Classless Static Routes (option 121)
 	// exist, we ignore Static Routes (option 33) and the Router/Gateway.
 	opt121Routes := ack.ClasslessStaticRoute()
-	if len(opt121Routes) > 0 {
-		for _, r := range opt121Routes {
-			routes = append(routes, &types.Route{Dst: *r.Dest, GW: r.Router})
-		}
-		return routes
-	}
+if len(opt121Routes) > 0 {
+        // In /32 cloud environments, we must install a link-scoped route for the
+        // gateway first. We identify this route and ensure it has a nil Gateway,
+        // and that it appears first in our returned slice.
+
+        var linkRoutes []*types.Route
+        var otherRoutes []*types.Route
+
+        // The dhcp4 library correctly parses the gateway from Option 3.
+        leaseGateway := l.Gateway()
+
+        for _, r := range opt121Routes {
+            // Check if this route is the special /32 route for the gateway itself.
+            // A route is for the gateway if its destination is a /32 mask AND
+            // its destination IP is the same as the lease's gateway IP.
+            isGwRoute := false
+            if leaseGateway != nil && r.Dest != nil {
+                if ones, _ := r.Dest.Mask.Size(); ones == 32 && r.Dest.IP.Equal(leaseGateway) {
+                    isGwRoute = true
+                }
+            }
+
+            if isGwRoute {
+                // This is the crucial transformation. We create a CNI route
+                // with a nil gateway. The downstream code will interpret this
+                // as a request for a link-scoped route.
+                route := &types.Route{Dst: *r.Dest, GW: nil}
+                linkRoutes = append(linkRoutes, route)
+            } else {
+                // For all other routes, create them normally with their gateway.
+                route := &types.Route{Dst: *r.Dest, GW: r.Router}
+                otherRoutes = append(otherRoutes, route)
+            }
+        }
+
+        // Return the sorted routes, ensuring link-scoped routes are first.
+        return append(linkRoutes, otherRoutes...)
+    }
 
 	// Append Static Routes
 	if ack.Options.Has(dhcp4.OptionStaticRoutingTable) {
