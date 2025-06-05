@@ -488,16 +488,15 @@ if len(opt121Routes) > 0 {
             // A route is for the gateway if its destination is a /32 mask AND
             // its destination IP is the same as the lease's gateway IP.
             isGwRoute := false
+            log.Printf("DEBUG: DHCP IPAM: Option 121 Route: Dest=%s, Router=%s", r.Dest, r.Router)
             if leaseGateway != nil && r.Dest != nil {
                 if ones, _ := r.Dest.Mask.Size(); ones == 32 && r.Dest.IP.Equal(leaseGateway) {
+                    log.Printf("DEBUG: option 3 gw: %s ; destip 121 gw: %s", leaseGateway, r.Dest.IP)
                     isGwRoute = true
                 }
             }
-
+            // Create route with nil gw - will mane a link scope route
             if isGwRoute {
-                // This is the crucial transformation. We create a CNI route
-                // with a nil gateway. The downstream code will interpret this
-                // as a request for a link-scoped route.
                 route := &types.Route{Dst: *r.Dest, GW: nil}
                 linkRoutes = append(linkRoutes, route)
             } else {
