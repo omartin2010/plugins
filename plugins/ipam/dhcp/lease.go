@@ -502,7 +502,7 @@ if len(opt121Routes) > 0 {
                 linkRoutes = append(linkRoutes, route)
             } else {
                 // For all other routes, create them normally with their gateway.
-                scope_link := netlink.SCOPE_LINK
+                scope_link := int(netlink.SCOPE_LINK)
                 log.Printf("DEBUG: Adding 'standard' route : dst = %s, GW = %s, scopelink=%d", r.Dest.IP, r.Router, int(netlink.SCOPE_LINK))
                 route := &types.Route{Dst: *r.Dest, GW: r.Router, Scope: &scope_link}
                 otherRoutes = append(otherRoutes, route)
