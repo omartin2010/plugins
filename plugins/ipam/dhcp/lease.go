@@ -474,11 +474,13 @@ func (l *DHCPLease) Routes() []*types.Route {
 	opt121Routes := ack.ClasslessStaticRoute()
 	if len(opt121Routes) > 0 {
 		for _, r := range opt121Routes {
-			// Verify if nil before using the nil pointer.
-			if r.Dest != nil {
-				// set GW to nil for cloud based infrastructures with /32 host IPs 
-				routes = append(routes, &types.Route{Dst: *r.Dest, GW: nil})
+			route := &types.Route{Dst: *r.Dest, GW: r.Router}
+			// if router is not specified, add SCOPE_LINK so routes are installed
+			if r.Router.IsUnspecified() {
+				scopeLinkValue := int(netlink.SCOPE_LINK)
+				route.Scope = &scopeLinkValue
 			}
+			routes = append(routes, route)
 		}
 		return routes
 	}
